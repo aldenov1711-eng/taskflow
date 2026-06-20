@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow Pro - Kategori & Arsip Tugas</title>
+    <style>
+        :root {
+            --biru: #2563eb;
+            --biru-muda: #3b82f6;
+            --biru-pucat: #dbeafe;
+            --biru-tua: #1e40af;
+            --putih: #ffffff;
+            --putih-abu: #f8fafc;
+            --border: #e2e8f0;
+            --text-gelap: #1e293b;
+            --text-abu: #64748b;
+            --merah: #ef4444;
+            --hijau: #22c55e;
+            --kuning: #f59e0b;
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #eff6ff 0%, #bfdbfe 50%, #93c5fd 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            align-items: start;
+        }
+
+        @media (max-width: 1000px) {
+            .main-grid { grid-template-columns: 1fr; }
+        }
+
+        .task-container {
+            background: var(--putih);
+            border-radius: 24px;
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e40af, #2563eb, #3b82f6);
+            padding: 20px 25px;
+            color: white;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+
+        .logo-text h1 { font-size: 22px; font-weight: 700; }
+        .logo-text p { font-size: 10px; opacity: 0.8; }
+
+        .task-count {
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            background: rgba(255,255,255,0.15);
+            padding: 6px 14px;
+            border-radius: 50px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .stat-item:hover { background: rgba(255,255,255,0.25); }
+        .stat-item.active-stat { background: white; color: var(--biru); }
+
+        .tab-nav {
+            display: flex;
+            background: var(--putih-abu);
+            border-bottom: 2px solid var(--border);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            background: transparent;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            color: var(--text-abu);
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.3s;
+        }
+
+        .tab-btn.active { color: var(--biru); border-bottom-color: var(--biru); background: white; }
+        .tab-btn:hover:not(.active) { color: var(--biru); background: rgba(37,99,235,0.03); }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .input-section {
+            padding: 18px 25px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .input-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 11px 16px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-size: 13px;
+            outline: none;
+            background: var(--putih-abu);
+            color: var(--text-gelap);
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .input-field:focus {
+            border-color: var(--biru);
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+            background: white;
+        }
+
+        .input-kategori {
+            padding: 11px 16px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-size: 13px;
+            outline: none;
+            background: var(--putih-abu);
+            color: var(--text-gelap);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 140px;
+        }
+
+        .input-kategori:focus { border-color: var(--biru); background: white; }
+
+        .btn-tambah {
+            padding: 11px 20px;
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+            transition: all 0.3s;
+        }
+
+        .btn-tambah:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(37,99,235,0.4); }
+
+        .kategori-suggestions { display: flex; gap: 6px; flex-wrap: wrap; }
+
+        .kategori-chip {
+            padding: 5px 12px;
+            border-radius: 50px;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 2px solid var(--border);
+            background: white;
+            transition: all 0.3s;
+        }
+
+        .kategori-chip:hover { border-color: var(--biru); background: var(--biru-pucat); }
+        .kategori-chip.selected { background: var(--biru); color: white; border-color: var(--biru); }
+
+        .filter-section {
+            display: flex;
+            gap: 6px;
+            padding: 10px 25px;
+            background: var(--putih-abu);
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+        }
+
+        .filter-btn {
+            padding: 7px 14px;
+            border: 2px solid var(--border);
+            background: white;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 11px;
+            color: var(--text-abu);
+            white-space: nowrap;
+            transition: all 0.3s;
+        }
+
+        .filter-btn.active { background: var(--biru); color: white; border-color: var(--biru); }
+        .filter-btn:hover:not(.active) { border-color: var(--biru-muda); color: var(--biru); background: var(--biru-pucat); }
+
+        .task-list {
+            list-style: none;
+            padding: 8px 25px;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+
+        .task-list::-webkit-scrollbar { width: 5px; }
+        .task-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        .task-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 14px;
+            margin: 4px 0;
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            gap: 10px;
+            transition: all 0.3s;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .task-item:hover { box-shadow: var(--shadow); border-color: var(--biru-muda); }
+        .task-item.completed { opacity: 0.55; background: #f0fdf4; }
+        .task-item.completed .task-text { text-decoration: line-through; color: #94a3b8; }
+
+        .checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2.5px solid #cbd5e1;
+            border-radius: 6px;
+            cursor: pointer;
+            background: white;
+            appearance: none;
+            -webkit-appearance: none;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .checkbox:checked { background: var(--hijau); border-color: var(--hijau); }
+        .checkbox:checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 12px;
+            font-weight: 900;
+        }
+
+        .task-content { flex: 1; min-width: 0; }
+        .task-text { font-size: 13px; color: var(--text-gelap); font-weight: 500; word-break: break-word; }
+        .task-meta { display: flex; gap: 8px; align-items: center; margin-top: 3px; }
+
+        .task-date {
+            font-size: 10px;
+            color: var(--text-abu);
+            background: var(--putih-abu);
+            padding: 2px 8px;
+            border-radius: 50px;
+        }
+
+        .badge-kategori { padding: 3px 10px; border-radius: 50px; font-size: 10px; font-weight: 700; color: white; }
+        .badge-bindo { background: #2563eb; } .badge-mtk { background: #dc2626; }
+        .badge-ipa { background: #16a34a; } .badge-ips { background: #f59e0b; }
+        .badge-bing { background: #8b5cf6; } .badge-pkn { background: #ec4899; }
+        .badge-agama { background: #14b8a6; } .badge-sbk { background: #f97316; }
+        .badge-pjok { background: #06b6d4; } .badge-tik { background: #6366f1; }
+        .badge-default { background: #64748b; }
+
+        .task-actions { display: flex; gap: 4px; flex-shrink: 0; }
+
+        .btn-icon {
+            width: 30px;
+            height: 30px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 8px;
+            color: #94a3b8;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-icon:hover { background: #fef2f2; color: var(--merah); }
+        .btn-arsip:hover { background: #fefce8; color: var(--kuning); }
+
+        .empty-state { text-align: center; padding: 50px 20px; color: var(--text-abu); }
+        .empty-icon { font-size: 55px; margin-bottom: 12px; opacity: 0.5; }
+        .empty-state h3 { font-size: 16px; color: var(--text-gelap); margin-bottom: 4px; }
+        .empty-state p { font-size: 12px; }
+
+        .footer {
+            padding: 12px 25px;
+            background: var(--putih-abu);
+            border-top: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: var(--text-abu);
+        }
+
+        .btn-clear {
+            padding: 7px 16px;
+            background: white;
+            border: 2px solid #fecaca;
+            color: var(--merah);
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 11px;
+            transition: all 0.3s;
+        }
+
+        .btn-clear:hover { background: #fef2f2; border-color: var(--merah); }
+
+        /* ARSIP */
+        .arsip-list {
+            list-style: none;
+            padding: 8px 25px;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+
+        .arsip-list::-webkit-scrollbar { width: 5px; }
+        .arsip-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        .arsip-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 14px;
+            margin: 4px 0;
+            background: linear-gradient(135deg, #fffbeb, #fef3c7);
+            border-radius: 12px;
+            border: 1px solid #fcd34d;
+            gap: 10px;
+            transition: all 0.3s;
+        }
+
+        .arsip-item:hover { box-shadow: var(--shadow); }
+        .arsip-content { flex: 1; min-width: 0; }
+        .arsip-text { font-size: 13px; color: var(--text-gelap); font-weight: 500; }
+        .arsip-meta { font-size: 10px; color: #92400e; margin-top: 2px; display: flex; gap: 8px; align-items: center; }
+
+        .arsip-actions { display: flex; gap: 4px; flex-shrink: 0; }
+
+        .btn-restore {
+            padding: 5px 12px;
+            background: #fef3c7;
+            border: 1px solid #fcd34d;
+            color: #92400e;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 11px;
+            transition: all 0.3s;
+        }
+
+        .btn-restore:hover { background: #fcd34d; }
+
+        .btn-hapus-arsip {
+            padding: 5px 10px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: var(--merah);
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 11px;
+            transition: all 0.3s;
+        }
+
+        .btn-hapus-arsip:hover { background: var(--merah); color: white; }
+
+        /* FILE MANAGER */
+        .upload-zone {
+            margin: 18px 25px;
+            border: 3px dashed var(--border);
+            border-radius: 18px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            background: var(--putih-abu);
+            transition: all 0.3s;
+        }
+
+        .upload-zone:hover, .upload-zone.drag-over { border-color: var(--biru); background: var(--biru-pucat); }
+        .upload-icon { font-size: 45px; margin-bottom: 8px; }
+        .upload-zone h3 { color: var(--text-gelap); margin-bottom: 4px; font-size: 15px; }
+        .upload-zone p { color: var(--text-abu); font-size: 12px; }
+        .file-input-hidden { display: none; }
+
+        .file-list {
+            list-style: none;
+            padding: 8px 25px;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .file-list::-webkit-scrollbar { width: 5px; }
+        .file-list::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 14px;
+            margin: 3px 0;
+            background: white;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            gap: 10px;
+            transition: all 0.3s;
+        }
+
+        .file-item:hover { box-shadow: var(--shadow); border-color: var(--biru-muda); }
+        .file-icon { font-size: 24px; flex-shrink: 0; }
+        .file-info { flex: 1; min-width: 0; }
+        .file-name { font-weight: 600; font-size: 13px; color: var(--text-gelap); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .file-meta { font-size: 10px; color: var(--text-abu); }
+        .file-actions { display: flex; gap: 4px; flex-shrink: 0; }
+
+        .btn-download, .btn-hapus-file {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-download { background: var(--biru-pucat); color: var(--biru); }
+        .btn-download:hover { background: var(--biru); color: white; }
+        .btn-hapus-file { background: #fef2f2; color: var(--merah); }
+        .btn-hapus-file:hover { background: var(--merah); color: white; }
+
+        /* CHATBOT */
+        .chatbot-container {
+            background: var(--putih);
+            border-radius: 24px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+            height: 700px;
+            position: sticky;
+            top: 20px;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #1e40af, #2563eb);
+            padding: 16px 20px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-radius: 24px 24px 0 0;
+        }
+
+        .chat-avatar {
+            width: 38px;
+            height: 38px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .chat-header-text h3 { font-size: 15px; font-weight: 700; }
+        .chat-header-text p { font-size: 10px; opacity: 0.8; }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            background: var(--putih-abu);
+        }
+
+        .chat-messages::-webkit-scrollbar { width: 5px; }
+        .chat-messages::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        .chat-msg {
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 16px;
+            font-size: 12px;
+            line-height: 1.5;
+            word-break: break-word;
+            animation: msgPop 0.3s ease;
+        }
+
+        @keyframes msgPop {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .chat-msg.user { align-self: flex-end; background: var(--biru); color: white; border-bottom-right-radius: 4px; }
+        .chat-msg.bot { align-self: flex-start; background: white; color: var(--text-gelap); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+
+        .chat-input-area {
+            padding: 12px 18px;
+            background: white;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 6px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 2px solid var(--border);
+            border-radius: 50px;
+            font-size: 12px;
+            outline: none;
+            background: var(--putih-abu);
+            transition: all 0.3s;
+        }
+
+        .chat-input:focus { border-color: var(--biru); background: white; }
+
+        .btn-send {
+            width: 40px;
+            height: 40px;
+            background: var(--biru);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            flex-shrink: 0;
+            transition: all 0.3s;
+        }
+
+        .btn-send:hover { background: #1d4ed8; transform: scale(1.05); }
+
+        @media (max-width: 1000px) { .chatbot-container { height: 500px; position: relative; top: 0; } }
+        @media (max-width: 600px) {
+            .header { padding: 15px; }
+            .input-section { padding: 12px 15px; }
+            .input-row { flex-wrap: wrap; }
+            .input-kategori { min-width: 100%; }
+            .filter-section { padding: 8px 15px; }
+            .task-list { padding: 6px 15px; max-height: 250px; }
+            .arsip-list { padding: 6px 15px; max-height: 200px; }
+            .file-list { padding: 6px 15px; max-height: 180px; }
+            .chatbot-container { height: 400px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-grid">
+
+        <!-- ==================== KIRI ==================== -->
+        <div class="task-container">
+            <div class="header">
+                <div class="header-top">
+                    <div class="logo">
+                        <div class="logo-icon">📋</div>
+                        <div class="logo-text">
+                            <h1>TaskFlow Pro</h1>
+                            <p>Kategori & Arsip Tugas</p>
+                        </div>
+                    </div>
+                    <div class="task-count" id="taskCount">📌 0 Aktif</div>
+                </div>
+                <div class="stats-bar" id="statsBar">
+                    <span class="stat-item active-stat" onclick="filterByKategori('all', this)">📋 Semua</span>
+                </div>
+            </div>
+
+            <div class="tab-nav">
+                <button class="tab-btn active" onclick="switchTab('tasks', this)">📋 Tugas Aktif</button>
+                <button class="tab-btn" onclick="switchTab('arsip', this)">📦 Arsip Selesai</button>
+                <button class="tab-btn" onclick="switchTab('files', this)">📁 File Manager</button>
+            </div>
+
+            <!-- TAB TUGAS -->
+            <div class="tab-content active" id="tab-tasks">
+                <div class="input-section">
+                    <div class="input-row">
+                        <input type="text" class="input-field" id="taskInput" placeholder="✍️ Nama tugas..." autocomplete="off">
+                        <select class="input-kategori" id="kategoriSelect">
+                            <option value="">📂 Pilih Kategori</option>
+                            <option value="bindo">🇮🇩 B. Indonesia</option>
+                            <option value="mtk">🔢 Matematika</option>
+                            <option value="ipa">🔬 IPA</option>
+                            <option value="ips">🌍 IPS</option>
+                            <option value="bing">🇬🇧 B. Inggris</option>
+                            <option value="pkn">⚖️ PKN</option>
+                            <option value="agama">🕌 Agama</option>
+                            <option value="sbk">🎨 SBK</option>
+                            <option value="pjok">⚽ PJOK</option>
+                            <option value="tik">💻 TIK</option>
+                        </select>
+                        <button class="btn-tambah" onclick="tambahTugas()">➕ Tambah</button>
+                    </div>
+                    <div class="kategori-suggestions">
+                        <span class="kategori-chip" onclick="pilihKategori('bindo', this)">🇮🇩 Bindo</span>
+                        <span class="kategori-chip" onclick="pilihKategori('mtk', this)">🔢 MTK</span>
+                        <span class="kategori-chip" onclick="pilihKategori('ipa', this)">🔬 IPA</span>
+                        <span class="kategori-chip" onclick="pilihKategori('ips', this)">🌍 IPS</span>
+                        <span class="kategori-chip" onclick="pilihKategori('bing', this)">🇬🇧 Bing</span>
+                        <span class="kategori-chip" onclick="pilihKategori('pkn', this)">⚖️ PKN</span>
+                        <span class="kategori-chip" onclick="pilihKategori('tik', this)">💻 TIK</span>
+                    </div>
+                </div>
+                <div class="filter-section">
+                    <button class="filter-btn active" onclick="setFilter('all', this)">📋 Semua</button>
+                    <button class="filter-btn" onclick="setFilter('active', this)">⏳ Aktif</button>
+                    <button class="filter-btn" onclick="setFilter('completed', this)">✅ Selesai</button>
+                </div>
+                <ul class="task-list" id="taskList"></ul>
+                <div class="footer">
+                    <span>💾 Auto-save localStorage</span>
+                    <button class="btn-clear" onclick="arsipkanSemuaSelesai()">📦 Arsipkan Semua Selesai</button>
+                </div>
+            </div>
+
+            <!-- TAB ARSIP -->
+            <div class="tab-content" id="tab-arsip">
+                <div class="filter-section">
+                    <button class="filter-btn active" onclick="filterArsip('all', this)">📦 Semua</button>
+                    <button class="filter-btn" onclick="filterArsip('bindo', this)">🇮🇩 Bindo</button>
+                    <button class="filter-btn" onclick="filterArsip('mtk', this)">🔢 MTK</button>
+                    <button class="filter-btn" onclick="filterArsip('ipa', this)">🔬 IPA</button>
+                    <button class="filter-btn" onclick="filterArsip('ips', this)">🌍 IPS</button>
+                    <button class="filter-btn" onclick="filterArsip('bing', this)">🇬🇧 Bing</button>
+                </div>
+                <ul class="arsip-list" id="arsipList"></ul>
+                <div class="footer">
+                    <span>📦 Tugas selesai disimpan di sini</span>
+                    <button class="btn-clear" onclick="hapusSemuaArsip()">🗑️ Hapus Semua Arsip</button>
+                </div>
+            </div>
+
+            <!-- TAB FILE MANAGER -->
+            <div class="tab-content" id="tab-files">
+                <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+                    <div class="upload-icon">📤</div>
+                    <h3>Klik atau Drop File di Sini</h3>
+                    <p>Upload file dari File Explorer lo!</p>
+                </div>
+                <input type="file" class="file-input-hidden" id="fileInput" multiple onchange="handleFileUpload(this.files)">
+                <ul class="file-list" id="fileList"></ul>
+                <div class="footer">
+                    <span>💾 IndexedDB Browser</span>
+                    <span id="fileCount">📁 0 File</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== KANAN: CHATBOT ==================== -->
+        <div class="chatbot-container">
+            <div class="chat-header">
+                <div class="chat-avatar">🤖</div>
+                <div class="chat-header-text">
+                    <h3>CUPSI AI Assistant</h3>
+                    <p>Online • Siap bantu lo</p>
+                </div>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="chat-msg bot">👋 Hai Tuan Ucup! Gue CUPSI!<br>📋 Kelompokin tugas per mapel<br>✅ Centang → arsipkan otomatis<br>📦 Tab Arsip lihat tugas kelar<br>📁 File Manager upload file<br>💬 Chat tanya apa aja!</div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" class="chat-input" id="chatInput" placeholder="💬 Ketik pesan..." autocomplete="off">
+                <button class="btn-send" onclick="kirimPesan()">➤</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ==================== DATABASE ====================
+        const STORAGE_KEY = 'taskflow_kategori_v3';
+        const ARSIP_KEY = 'taskflow_arsip_v3';
+        const FILE_DB_NAME = 'TaskFlowFileDB';
+        const FILE_STORE_NAME = 'files';
+        let daftarTugas = [], daftarArsip = [], filterAktif = 'all', filterKategori = 'all', filterArsipAktif = 'all', db = null;
+
+        const daftarKategori = [
+            { id: 'bindo', nama: '🇮🇩 Bindo', badge: 'badge-bindo' },
+            { id: 'mtk', nama: '🔢 MTK', badge: 'badge-mtk' },
+            { id: 'ipa', nama: '🔬 IPA', badge: 'badge-ipa' },
+            { id: 'ips', nama: '🌍 IPS', badge: 'badge-ips' },
+            { id: 'bing', nama: '🇬🇧 Bing', badge: 'badge-bing' },
+            { id: 'pkn', nama: '⚖️ PKN', badge: 'badge-pkn' },
+            { id: 'agama', nama: '🕌 Agama', badge: 'badge-agama' },
+            { id: 'sbk', nama: '🎨 SBK', badge: 'badge-sbk' },
+            { id: 'pjok', nama: '⚽ PJOK', badge: 'badge-pjok' },
+            { id: 'tik', nama: '💻 TIK', badge: 'badge-tik' }
+        ];
+
+        function getBadgeClass(k) { return (daftarKategori.find(x => x.id === k) || {}).badge || 'badge-default'; }
+        function getNamaKategori(k) { return (daftarKategori.find(x => x.id === k) || {}).nama || '📎 Lainnya'; }
+
+        function loadData() {
+            daftarTugas = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            daftarArsip = JSON.parse(localStorage.getItem(ARSIP_KEY) || '[]');
+        }
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(daftarTugas));
+            localStorage.setItem(ARSIP_KEY, JSON.stringify(daftarArsip));
+        }
+
+        function pilihKategori(katId, chip) {
+            document.getElementById('kategoriSelect').value = katId;
+            document.querySelectorAll('#tab-tasks .kategori-chip').forEach(c => c.classList.remove('selected'));
+            if (chip) chip.classList.add('selected');
+        }
+
+        function filterByKategori(katId, statItem) {
+            filterKategori = katId;
+            document.querySelectorAll('#statsBar .stat-item').forEach(s => s.classList.remove('active-stat'));
+            if (statItem) statItem.classList.add('active-stat');
+            renderTugas();
+        }
+
+        function updateStatsBar() {
+            const statsBar = document.getElementById('statsBar');
+            let html = `<span class="stat-item ${filterKategori === 'all' ? 'active-stat' : ''}" onclick="filterByKategori('all', this)">📋 Semua (${daftarTugas.filter(t => !t.selesai).length})</span>`;
+            daftarKategori.forEach(kat => {
+                const j = daftarTugas.filter(t => t.kategori === kat.id && !t.selesai).length;
+                if (j > 0 || filterKategori === kat.id) html += `<span class="stat-item ${filterKategori === kat.id ? 'active-stat' : ''}" onclick="filterByKategori('${kat.id}', this)">${kat.nama} (${j})</span>`;
+            });
+            statsBar.innerHTML = html;
+        }
+
+        function tambahTugas() {
+            const input = document.getElementById('taskInput'), kategori = document.getElementById('kategoriSelect').value, teks = input.value.trim();
+            if (!teks) { input.style.borderColor = '#ef4444'; setTimeout(() => input.style.borderColor = '#e2e8f0', 500); return; }
+            if (!kategori) { alert('⚠️ Pilih kategori dulu Tuan!'); return; }
+            daftarTugas.unshift({ id: Date.now(), teks, kategori, selesai: false, tanggalBuat: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }), tanggalSelesai: null });
+            saveData(); input.value = ''; document.getElementById('kategoriSelect').value = '';
+            document.querySelectorAll('.kategori-chip').forEach(c => c.classList.remove('selected'));
+            input.focus(); renderTugas(); updateStatsBar();
+        }
+
+        function toggleSelesai(id) {
+            const t = daftarTugas.find(x => x.id === id);
+            if (t) { t.selesai = !t.selesai; t.tanggalSelesai = t.selesai ? new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : null; saveData(); renderTugas(); updateStatsBar(); }
+        }
+
+        function hapusTugas(id) { daftarTugas = daftarTugas.filter(t => t.id !== id); saveData(); renderTugas(); updateStatsBar(); }
+
+        function arsipkanTugas(id) {
+            const idx = daftarTugas.findIndex(t => t.id === id);
+            if (idx === -1) return;
+            const tugas = daftarTugas.splice(idx, 1)[0];
+            tugas.tanggalSelesai = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+            daftarArsip.unshift(tugas);
+            saveData(); renderTugas(); renderArsip(); updateStatsBar();
+        }
+
+        function arsipkanSemuaSelesai() {
+            const selesai = daftarTugas.filter(t => t.selesai);
+            if (selesai.length === 0) return alert('⚠️ Gak ada tugas selesai!');
+            if (!confirm(`Arsipkan ${selesai.length} tugas selesai?`)) return;
+            selesai.forEach(t => { t.tanggalSelesai = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }); });
+            daftarArsip = [...selesai, ...daftarArsip];
+            daftarTugas = daftarTugas.filter(t => !t.selesai);
+            saveData(); renderTugas(); renderArsip(); updateStatsBar();
+        }
+
+        function restoreDariArsip(id) {
+            const idx = daftarArsip.findIndex(t => t.id === id);
+            if (idx === -1) return;
+            const tugas = daftarArsip.splice(idx, 1)[0];
+            tugas.selesai = false; tugas.tanggalSelesai = null;
+            daftarTugas.unshift(tugas);
+            saveData(); renderTugas(); renderArsip(); updateStatsBar();
+        }
+
+        function hapusArsip(id) { if (confirm('Hapus permanen dari arsip?')) { daftarArsip = daftarArsip.filter(t => t.id !== id); saveData(); renderArsip(); } }
+        function hapusSemuaArsip() { if (daftarArsip.length === 0) return alert('⚠️ Arsip kosong!'); if (confirm(`Hapus SEMUA ${daftarArsip.length} arsip?`)) { daftarArsip = []; saveData(); renderArsip(); } }
+
+        function setFilter(filter, btn) {
+            filterAktif = filter;
+            document.querySelectorAll('#tab-tasks .filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active'); renderTugas();
+        }
+
+        function filterArsip(filter, btn) {
+            filterArsipAktif = filter;
+            document.querySelectorAll('#tab-arsip .filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active'); renderArsip();
+        }
+
+        function renderTugas() {
+            const taskList = document.getElementById('taskList'), taskCount = document.getElementById('taskCount');
+            let data = daftarTugas;
+            if (filterKategori !== 'all') data = data.filter(t => t.kategori === filterKategori);
+            if (filterAktif === 'active') data = data.filter(t => !t.selesai);
+            else if (filterAktif === 'completed') data = data.filter(t => t.selesai);
+            taskCount.innerHTML = `📌 ${daftarTugas.filter(t => !t.selesai).length} Aktif`;
+            if (data.length === 0) { taskList.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><h3>Belum ada tugas</h3><p>Tambah tugas baru ya!</p></div>'; return; }
+            taskList.innerHTML = data.map(t => `
+                <li class="task-item ${t.selesai ? 'completed' : ''}">
+                    <input type="checkbox" class="checkbox" ${t.selesai ? 'checked' : ''} onchange="toggleSelesai(${t.id})">
+                    <div class="task-content">
+                        <div class="task-text">${t.teks.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+                        <div class="task-meta">
+                            <span class="badge-kategori ${getBadgeClass(t.kategori)}">${getNamaKategori(t.kategori)}</span>
+                            <span class="task-date">🕐 ${t.tanggalBuat}</span>
+                        </div>
+                    </div>
+                    <div class="task-actions">
+                        ${t.selesai ? `<button class="btn-icon btn-arsip" onclick="arsipkanTugas(${t.id})" title="Arsipkan">📦</button>` : ''}
+                        <button class="btn-icon" onclick="hapusTugas(${t.id})" title="Hapus">🗑️</button>
+                    </div>
+                </li>
+            `).join('');
+        }
+
+        function renderArsip() {
+            const arsipList = document.getElementById('arsipList');
+            let data = daftarArsip;
+            if (filterArsipAktif !== 'all') data = data.filter(t => t.kategori === filterArsipAktif);
+            if (data.length === 0) { arsipList.innerHTML = '<div class="empty-state"><div class="empty-icon">📦</div><h3>Arsip kosong</h3><p>Tugas selesai bakal muncul di sini!</p></div>'; return; }
+            arsipList.innerHTML = data.map(t => `
+                <li class="arsip-item">
+                    <span class="arsip-icon">✅</span>
+                    <div class="arsip-content">
+                        <div class="arsip-text">${t.teks.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+                        <div class="arsip-meta">
+                            <span class="badge-kategori ${getBadgeClass(t.kategori)}">${getNamaKategori(t.kategori)}</span>
+                            <span>📅 Dibuat: ${t.tanggalBuat}</span>
+                            <span>✅ Selesai: ${t.tanggalSelesai || '--'}</span>
+                        </div>
+                    </div>
+                    <div class="arsip-actions">
+                        <button class="btn-restore" onclick="restoreDariArsip(${t.id})">🔄 Pulihkan</button>
+                        <button class="btn-hapus-arsip" onclick="hapusArsip(${t.id})">🗑️</button>
+                    </div>
+                </li>
+            `).join('');
+        }
+
+        function switchTab(tabName, btn) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tabName).classList.add('active');
+            btn.classList.add('active');
+            if (tabName === 'files') renderFileList();
+            if (tabName === 'arsip') renderArsip();
+            if (tabName === 'tasks') { renderTugas(); updateStatsBar(); }
+        }
+
+        // ==================== FILE MANAGER ====================
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(FILE_DB_NAME, 1);
+                request.onupgradeneeded = (e) => { if (!e.target.result.objectStoreNames.contains(FILE_STORE_NAME)) e.target.result.createObjectStore(FILE_STORE_NAME, { keyPath: 'id' }); };
+                request.onsuccess = (e) => { db = e.target.result; resolve(db); };
+                request.onerror = (e) => reject(e.target.error);
+            });
+        }
+        function saveFileToDB(d) { return new Promise((resolve, reject) => { const tx = db.transaction(FILE_STORE_NAME, 'readwrite'); tx.objectStore(FILE_STORE_NAME).put(d).onsuccess = resolve; tx.onerror = reject; }); }
+        function getAllFilesFromDB() { return new Promise((resolve, reject) => { const tx = db.transaction(FILE_STORE_NAME, 'readonly'); tx.objectStore(FILE_STORE_NAME).getAll().onsuccess = (e) => resolve(e.target.result); tx.onerror = reject; }); }
+        function deleteFileFromDB(id) { return new Promise((resolve, reject) => { const tx = db.transaction(FILE_STORE_NAME, 'readwrite'); tx.objectStore(FILE_STORE_NAME).delete(id).onsuccess = resolve; tx.onerror = reject; }); }
+        function getFileFromDB(id) { return new Promise((resolve, reject) => { const tx = db.transaction(FILE_STORE_NAME, 'readonly'); tx.objectStore(FILE_STORE_NAME).get(id).onsuccess = (e) => resolve(e.target.result); tx.onerror = reject; }); }
+
+        async function handleFileUpload(fileList) {
+            for (const file of fileList) await saveFileToDB({ id: Date.now() + Math.random(), name: file.name, size: file.size, type: file.type || 'unknown', lastModified: new Date(file.lastModified).toLocaleDateString('id-ID'), blob: file });
+            document.getElementById('fileInput').value = ''; renderFileList();
+        }
+        async function downloadFile(id) { const f = await getFileFromDB(id); if (f && f.blob) { const url = URL.createObjectURL(f.blob), a = document.createElement('a'); a.href = url; a.download = f.name; a.click(); URL.revokeObjectURL(url); } }
+        async function hapusFile(id) { if (confirm('Yakin hapus file?')) { await deleteFileFromDB(id); renderFileList(); } }
+        function formatFileSize(b) { return b < 1024 ? b + ' B' : b < 1048576 ? (b / 1024).toFixed(1) + ' KB' : (b / 1048576).toFixed(1) + ' MB'; }
+        function getFileIcon(type, name) {
+            const ext = name.split('.').pop().toLowerCase();
+            if (type.startsWith('image/')) return '🖼️'; if (type.startsWith('video/')) return '🎬'; if (type.startsWith('audio/')) return '🎵';
+            if (ext === 'pdf') return '📕'; if (['doc','docx'].includes(ext)) return '📝'; if (['xls','xlsx'].includes(ext)) return '📊';
+            if (['zip','rar'].includes(ext)) return '🗜️'; if (['html','js','css'].includes(ext)) return '💻'; return '📎';
+        }
+        async function renderFileList() {
+            const fl = document.getElementById('fileList'), fc = document.getElementById('fileCount'), files = await getAllFilesFromDB();
+            fc.textContent = '📁 ' + files.length + ' File';
+            fl.innerHTML = files.length === 0 ? '<div class="empty-state"><div class="empty-icon">📂</div><h3>Belum ada file</h3><p>Upload file dari File Explorer!</p></div>' : files.map(f => `<li class="file-item"><span class="file-icon">${getFileIcon(f.type, f.name)}</span><div class="file-info"><div class="file-name" title="${f.name}">${f.name}</div><div class="file-meta">${formatFileSize(f.size)} • ${f.lastModified}</div></div><div class="file-actions"><button class="btn-download" onclick="downloadFile(${f.id})">⬇</button><button class="btn-hapus-file" onclick="hapusFile(${f.id})">🗑️</button></div></li>`).join('');
+        }
+
+        // ==================== CHATBOT ====================
+        function kirimPesan() {
+            const input = document.getElementById('chatInput'), pesan = input.value.trim();
+            if (!pesan) return;
+            const chat = document.getElementById('chatMessages');
+            chat.innerHTML += `<div class="chat-msg user">${pesan.replace(/</g,'&lt;')}</div>`;
+            input.value = ''; chat.innerHTML += '<div class="chat-msg bot" style="opacity:0.6">🤔 Mengetik...</div>';
+            chat.scrollTop = chat.scrollHeight;
+            setTimeout(() => {
+                const ty = [...chat.querySelectorAll('.chat-msg.bot')].pop();
+                if (ty && ty.textContent.includes('Mengetik')) ty.remove();
+                let r = 'Menarik Tuan! Ceritain lebih detail ya 😎';
+                const p = pesan.toLowerCase();
+                if (p.includes('halo') || p.includes('hai')) r = 'Halo juga Tuan Ucup! 👋';
+                else if (p.includes('kabar')) r = 'Gue selalu siap 24/7 Tuan! ⚡';
+                else if (p.includes('siapa')) r = 'Gue CUPSI, AI asisten pribadi lo! 🤖';
+                else if (p.includes('makasih')) r = 'Sama-sama Tuan! 🫡';
+                else if (p.includes('fitur')) r = '📋 Tugas per mapel | 📦 Arsip | 📁 File Manager | 💬 Chat';
+                else if (p.includes('jam')) r = 'Sekarang ' + new Date().toLocaleString('id-ID') + ' ⏰';
+                chat.innerHTML += `<div class="chat-msg bot">${r}</div>`;
+                chat.scrollTop = chat.scrollHeight;
+            }, 800);
+        }
+
+        // ==================== EVENT ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('taskInput').addEventListener('keypress', e => { if (e.key === 'Enter') tambahTugas(); });
+            document.getElementById('chatInput').addEventListener('keypress', e => { if (e.key === 'Enter') kirimPesan(); });
+            const zone = document.getElementById('uploadZone');
+            if (zone) {
+                zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+                zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+                zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag-over'); if (e.dataTransfer.files.length) handleFileUpload(e.dataTransfer.files); });
+            }
+        });
+
+        // ==================== INIT ====================
+        openDB().catch(() => {});
+        loadData();
+        renderTugas();
+        updateStatsBar();
+        console.log('🚀 TaskFlow Pro FINAL READY! CUPSI for Tuan Ucup 🔥');
+    </script>
+
+</body>
+</html>
