@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlashCard Pro — Spaced Repetition</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700;1,800;1,900&family=Inter:wght@100;200;300;400;500;600;700;800;900&family=JetBrains+Mono:wght@100;200;300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg: #fafaf8; --surface: #ffffff; --text: #1a1a1a; --text-secondary: #6b6b6b;
+            --text-tertiary: #9a9a9a; --border: #e8e8e6; --accent: #1a1a1a; --accent-hover: #333333;
+            --success: #2d8a56; --danger: #d94a4a; --warning: #e8a838; --info: #3b82f6;
+            --radius-sm: 8px; --radius: 12px; --radius-lg: 20px; --radius-xl: 28px;
+            --shadow: 0 4px 20px rgba(0,0,0,0.06); --shadow-lg: 0 12px 40px rgba(0,0,0,0.08);
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; letter-spacing: -0.01em; line-height: 1.6; }
+        .emoji { font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif; display: inline-block; font-style: normal; }
+
+        /* EMOJI PICKER */
+        .emoji-picker-container { position: relative; display: inline-block; }
+        .emoji-picker-btn { padding: 0.7rem 0.8rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 1.5rem; cursor: pointer; background: var(--bg); transition: var(--transition); width: 55px; text-align: center; flex-shrink: 0; height: 45px; display: flex; align-items: center; justify-content: center; }
+        .emoji-picker-btn:hover { border-color: var(--accent); background: var(--surface); }
+        .emoji-picker-dropdown { display: none; position: absolute; top: 110%; left: 0; z-index: 300; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 0.5rem; box-shadow: var(--shadow-lg); width: 300px; max-height: 220px; overflow-y: auto; }
+        .emoji-picker-dropdown.show { display: block; }
+        .emoji-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 0.2rem; }
+        .emoji-item { padding: 0.3rem; text-align: center; cursor: pointer; font-size: 1.3rem; border-radius: var(--radius-sm); transition: var(--transition); background: transparent; border: none; }
+        .emoji-item:hover { background: var(--bg); transform: scale(1.2); }
+        .emoji-category-tabs { display: flex; gap: 0.2rem; margin-bottom: 0.4rem; flex-wrap: wrap; }
+        .emoji-cat-tab { padding: 0.2rem 0.5rem; border: 1px solid var(--border); border-radius: 100px; cursor: pointer; font-size: 0.65rem; font-weight: 500; background: var(--surface); transition: var(--transition); }
+        .emoji-cat-tab:hover, .emoji-cat-tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+        #authScreen { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 2rem; background: var(--bg); }
+        .auth-container { background: var(--surface); padding: 3rem; border-radius: var(--radius-xl); width: 100%; max-width: 440px; border: 1px solid var(--border); box-shadow: var(--shadow-lg); }
+        .auth-brand { text-align: center; margin-bottom: 2.5rem; }
+        .auth-brand .logo-icon { font-size: 3rem; display: block; margin-bottom: 0.5rem; }
+        .auth-brand .logo { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 700; font-style: italic; color: var(--accent); }
+        .auth-tabs { display: flex; margin-bottom: 2rem; border-bottom: 1px solid var(--border); }
+        .auth-tab { flex: 1; padding: 0.8rem 0; border: none; background: none; font-size: 0.85rem; font-weight: 500; cursor: pointer; color: var(--text-tertiary); transition: var(--transition); }
+        .auth-tab.active { color: var(--accent); font-weight: 600; border-bottom: 2px solid var(--accent); }
+        .auth-form { display: flex; flex-direction: column; gap: 1rem; }
+        .auth-form h2 { font-family: 'Playfair Display', serif; font-size: 1.5rem; font-weight: 600; }
+        .input { width: 100%; padding: 0.9rem 1rem; border: 1px solid var(--border); border-radius: var(--radius); font-family: 'Inter', sans-serif; font-size: 0.9rem; color: var(--text); background: var(--bg); outline: none; }
+        .input:focus { border-color: var(--accent); background: var(--surface); box-shadow: 0 0 0 3px rgba(26,26,26,0.05); }
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.85rem 1.5rem; border: none; border-radius: var(--radius); font-family: 'Inter', sans-serif; font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: var(--transition); white-space: nowrap; }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: var(--shadow); }
+        .btn-secondary { background: var(--surface); color: var(--accent); border: 1px solid var(--border); }
+        .btn-ghost { background: transparent; color: var(--text-secondary); }
+        .btn-danger { background: transparent; color: var(--danger); }
+        .btn-sm { padding: 0.5rem 1rem; font-size: 0.8rem; border-radius: var(--radius-sm); }
+        .btn-xs { padding: 0.3rem 0.6rem; font-size: 0.7rem; border-radius: var(--radius-sm); }
+        .btn-block { width: 100%; }
+
+        #mainApp { display: none; flex-direction: column; min-height: 100vh; }
+        #mainApp.active { display: flex; }
+        .navbar { background: var(--surface); padding: 0 2rem; height: 64px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; }
+        .nav-brand { font-family: 'Playfair Display', serif; font-size: 1.3rem; font-weight: 700; font-style: italic; color: var(--accent); cursor: pointer; display: flex; align-items: center; gap: 0.4rem; }
+        .nav-links { display: flex; gap: 0.25rem; align-items: center; }
+        .nav-link { padding: 0.5rem 1rem; border: none; background: none; font-size: 0.85rem; font-weight: 500; cursor: pointer; color: var(--text-secondary); border-radius: var(--radius); display: flex; align-items: center; gap: 0.3rem; transition: var(--transition); }
+        .nav-link:hover { color: var(--accent); background: var(--bg); }
+        .nav-link.active { color: var(--accent); background: var(--bg); font-weight: 600; }
+        .nav-user { font-size: 0.8rem; color: var(--text-tertiary); padding: 0 0.5rem; display: flex; align-items: center; gap: 0.3rem; }
+        .main-content { flex: 1; padding: 2rem; max-width: 1280px; margin: 0 auto; width: 100%; }
+        .page { display: none; animation: fadeUp 0.4s ease; }
+        .page.active { display: block; }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+        .page-title { font-family: 'Playfair Display', serif; font-size: 2.5rem; font-weight: 700; }
+        .category-filter-bar { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; padding: 0.5rem; background: var(--surface); border-radius: var(--radius-lg); border: 1px solid var(--border); overflow-x: auto; }
+        .category-filter-btn { padding: 0.6rem 1.2rem; border: 1px solid transparent; border-radius: 100px; cursor: pointer; font-size: 0.8rem; font-weight: 500; background: transparent; color: var(--text-secondary); transition: var(--transition); display: flex; align-items: center; gap: 0.4rem; white-space: nowrap; }
+        .category-filter-btn:hover { background: var(--bg); color: var(--accent); }
+        .category-filter-btn.active { background: var(--accent); color: white; }
+        .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 2.5rem; }
+        .stat-card { background: var(--surface); padding: 1.5rem; border-radius: var(--radius-lg); border: 1px solid var(--border); }
+        .stat-icon { font-size: 1.8rem; display: block; margin-bottom: 0.5rem; }
+        .stat-value { font-family: 'Playfair Display', serif; font-size: 2.5rem; font-weight: 700; }
+        .stat-label { font-size: 0.8rem; color: var(--text-tertiary); margin-top: 0.5rem; text-transform: uppercase; }
+        .deck-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+        .deck-card { background: var(--surface); padding: 1.5rem; border-radius: var(--radius-lg); border: 1px solid var(--border); cursor: pointer; transition: var(--transition); }
+        .deck-card:hover { border-color: var(--accent); box-shadow: var(--shadow-lg); transform: translateY(-2px); }
+        .deck-icon { font-size: 2rem; display: block; margin-bottom: 0.5rem; }
+        .deck-meta { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+        .tag { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.7rem; border-radius: 100px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; }
+        .tag-light { background: var(--bg); color: var(--text-secondary); }
+        .tag-danger { background: #fef5f5; color: var(--danger); }
+        .tag-accent { background: #f0f0f0; color: var(--accent); }
+        .deck-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+        .empty-state { text-align: center; padding: 4rem 2rem; background: var(--surface); border-radius: var(--radius-lg); border: 1px solid var(--border); }
+        .empty-icon { font-size: 4rem; display: block; margin-bottom: 1rem; }
+
+        .study-container { max-width: 700px; margin: 0 auto; text-align: center; }
+        .study-progress { display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; font-size: 0.85rem; color: var(--text-secondary); }
+        .progress-track { flex: 1; height: 2px; background: var(--border); border-radius: 10px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--accent); border-radius: 10px; }
+        .flashcard { background: var(--surface); border-radius: var(--radius-xl); padding: 3rem 2rem; margin: 1.5rem 0; min-height: 300px; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 1px solid var(--border); cursor: pointer; }
+        .card-label { font-size: 0.7rem; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1.5rem; }
+        .card-question { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 600; }
+        .card-answer { font-size: 1.2rem; color: var(--success); display: none; margin-top: 1rem; font-weight: 500; }
+        .card-answer.show { display: block; }
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-top: 1.5rem; width: 100%; }
+        .option-btn { padding: 1rem 1.2rem; border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; font-size: 0.9rem; font-weight: 500; background: var(--surface); text-align: left; display: flex; align-items: center; gap: 0.75rem; }
+        .option-letter { width: 32px; height: 32px; border-radius: 50%; background: var(--bg); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; }
+        .option-btn.correct { border-color: var(--success) !important; background: #f0faf5 !important; }
+        .option-btn.wrong { border-color: var(--danger) !important; background: #fef5f5 !important; }
+        .option-btn.correct .option-letter { background: var(--success); color: white; }
+        .option-btn.wrong .option-letter { background: var(--danger); color: white; }
+        .option-btn.disabled { pointer-events: none; opacity: 0.7; }
+        .tf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.5rem; width: 100%; max-width: 400px; }
+        .tf-btn { padding: 1.5rem 2rem; border: 2px solid var(--border); border-radius: var(--radius-lg); cursor: pointer; font-size: 1.2rem; font-weight: 700; background: var(--surface); }
+        .tf-btn.correct { border-color: var(--success) !important; background: #f0faf5 !important; color: var(--success) !important; }
+        .tf-btn.wrong { border-color: var(--danger) !important; background: #fef5f5 !important; color: var(--danger) !important; }
+        .tf-btn.disabled { pointer-events: none !important; }
+        .action-row { display: flex; gap: 0.75rem; margin-top: 1.5rem; justify-content: center; flex-wrap: wrap; }
+        .dont-know-panel { display: none; margin-top: 1.5rem; padding: 1.5rem; background: var(--surface); border-radius: var(--radius-lg); border: 1px solid var(--border); text-align: left; }
+        .dont-know-panel.show { display: block; }
+        .dont-know-panel h4 { font-family: 'Playfair Display', serif; font-size: 1.1rem; margin-bottom: 0.75rem; }
+        .ai-explanation { font-size: 0.9rem; line-height: 1.7; color: var(--text-secondary); }
+        .study-complete { text-align: center; padding: 4rem 2rem; }
+        .study-complete .icon { font-size: 5rem; display: block; margin-bottom: 1rem; }
+
+        .tutor-wrapper { max-width: 750px; margin: 0 auto; height: calc(100vh - 160px); display: flex; flex-direction: column; }
+        .chat-box { flex: 1; display: flex; flex-direction: column; background: var(--surface); border-radius: var(--radius-xl); border: 1px solid var(--border); overflow: hidden; box-shadow: var(--shadow); }
+        .chat-header { background: var(--surface); padding: 1.5rem 1.8rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .chat-header-title { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 600; color: var(--accent); display: flex; align-items: center; gap: 0.5rem; }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 1.5rem 1.8rem; display: flex; flex-direction: column; gap: 1rem; background: var(--bg); }
+        .msg { max-width: 78%; padding: 1rem 1.2rem; border-radius: var(--radius-lg); font-size: 0.9rem; line-height: 1.7; animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .msg.user { background: var(--accent); color: white; align-self: flex-end; }
+        .msg.ai { background: var(--surface); color: var(--text); align-self: flex-start; border: 1px solid var(--border); }
+        .msg-label { font-family: 'Playfair Display', serif; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; }
+        .quick-chips { display: flex; gap: 0.5rem; flex-wrap: wrap; padding: 0.5rem 0; }
+        .chip { padding: 0.5rem 1rem; border: 1px solid var(--border); border-radius: 100px; cursor: pointer; font-size: 0.8rem; font-weight: 500; background: var(--surface); color: var(--text); transition: var(--transition); display: flex; align-items: center; gap: 0.3rem; }
+        .chip:hover { background: var(--accent); color: white; border-color: var(--accent); }
+        .chat-input-row { padding: 1rem 1.8rem; display: flex; gap: 0.75rem; border-top: 1px solid var(--border); background: var(--surface); }
+        .chat-input { flex: 1; padding: 0.85rem 1.2rem; border: 1px solid var(--border); border-radius: 100px; font-family: 'Inter', sans-serif; font-size: 0.9rem; outline: none; background: var(--bg); }
+        .chat-input:focus { border-color: var(--accent); }
+        .chat-send-btn { background: var(--accent); color: white; border: none; padding: 0.85rem 1.5rem; border-radius: 100px; cursor: pointer; font-weight: 500; }
+
+        .gen-container { max-width: 800px; margin: 0 auto; }
+        .gen-box, .history-box { background: var(--surface); padding: 2rem; border-radius: var(--radius-xl); border: 1px solid var(--border); margin-bottom: 1.5rem; }
+        textarea { width: 100%; min-height: 120px; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius); font-family: 'Inter', sans-serif; font-size: 0.9rem; resize: vertical; background: var(--bg); }
+        textarea:focus { border-color: var(--accent); outline: none; }
+        select { padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: var(--radius); font-family: 'Inter', sans-serif; font-size: 0.9rem; background: var(--bg); cursor: pointer; flex: 1; }
+
+        .settings-container { max-width: 800px; margin: 0 auto; }
+        .settings-block { background: var(--surface); padding: 2rem; border-radius: var(--radius-xl); border: 1px solid var(--border); margin-bottom: 1.5rem; }
+        .settings-block h3 { font-family: 'Playfair Display', serif; font-size: 1.2rem; margin-bottom: 1.2rem; font-weight: 600; }
+        .preset-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 0.5rem; margin-bottom: 1rem; }
+        .preset-item { padding: 1rem 0.5rem; border: 1px solid var(--border); border-radius: var(--radius); cursor: pointer; text-align: center; background: var(--surface); transition: var(--transition); }
+        .preset-item:hover { border-color: var(--accent); }
+        .preset-item.active { border-color: var(--accent); background: var(--bg); }
+        .preset-item .preset-emoji { font-size: 1.8rem; display: block; }
+        .preset-item .preset-name { font-size: 0.7rem; font-weight: 600; margin-top: 0.3rem; }
+        .custom-cat-row { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem; }
+        .custom-cat-row .input { flex: 1; }
+
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.3); backdrop-filter: blur(4px); z-index: 200; justify-content: center; align-items: center; padding: 2rem; }
+        .modal-overlay.show { display: flex; }
+        .modal-box { background: var(--surface); padding: 2rem; border-radius: var(--radius-xl); width: 100%; max-width: 520px; border: 1px solid var(--border); box-shadow: var(--shadow-lg); animation: fadeUp 0.3s ease; }
+        .modal-close { float: right; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-tertiary); }
+        .toast { position: fixed; bottom: 2rem; right: 2rem; background: var(--accent); color: white; padding: 1rem 1.5rem; border-radius: var(--radius); font-size: 0.85rem; z-index: 999; animation: fadeUp 0.3s ease; box-shadow: var(--shadow-lg); }
+
+        @media (max-width: 768px) {
+            .navbar { padding: 0 1rem; height: auto; flex-wrap: wrap; }
+            .nav-links { gap: 0; flex-wrap: wrap; justify-content: center; }
+            .main-content { padding: 1rem; }
+            .page-title { font-size: 1.8rem; }
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            .deck-grid { grid-template-columns: 1fr; }
+            .options-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- AUTH SCREEN -->
+    <div id="authScreen">
+        <div class="auth-container">
+            <div class="auth-brand"><span class="logo-icon emoji">🧠</span><div class="logo">FlashCard Pro</div><div class="tagline">Spaced Repetition · Learn Smarter</div></div>
+            <div class="auth-tabs"><button class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">🔐 Sign In</button><button class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">✨ Register</button></div>
+            <div class="auth-form" id="loginFormDiv"><h2>👋 Welcome back</h2><input type="text" id="loginUser" class="input" placeholder="👤 Username"><input type="password" id="loginPass" class="input" placeholder="🔒 Password"><button class="btn btn-primary btn-block" onclick="doLogin()">Continue →</button></div>
+            <div class="auth-form" id="registerFormDiv" style="display:none;"><h2>🚀 Create account</h2><input type="text" id="regUser" class="input" placeholder="👤 Username"><input type="email" id="regEmail" class="input" placeholder="📧 Email"><input type="password" id="regPass" class="input" placeholder="🔒 Password (6+ chars)"><button class="btn btn-primary btn-block" onclick="doRegister()">Get Started →</button></div>
+        </div>
+    </div>
+
+    <!-- MAIN APP -->
+    <div id="mainApp">
+        <nav class="navbar">
+            <div class="nav-brand" onclick="navigateTo('dashboard')"><span class="emoji">🧠</span> FlashCard Pro</div>
+            <div class="nav-links" id="navLinks">
+                <button class="nav-link active" data-page="dashboard">📊 Dashboard</button>
+                <button class="nav-link" data-page="study">📚 Study</button>
+                <button class="nav-link" data-page="tutor">💬 AI Tutor</button>
+                <button class="nav-link" data-page="generator">🤖 Generate</button>
+                <button class="nav-link" data-page="settings">⚙️ Settings</button>
+                <span class="nav-user"><span class="emoji">👤</span> <span id="navUser"></span></span>
+                <button class="btn btn-ghost btn-sm" onclick="doLogout()">🚪 Exit</button>
+            </div>
+        </nav>
+
+        <div class="main-content">
+            <!-- DASHBOARD -->
+            <div class="page active" id="page-dashboard">
+                <div class="page-header"><div><div class="page-title">📊 Dashboard</div></div><button class="btn btn-primary" onclick="openAddDeckModal()">➕ New Deck</button></div>
+                <div class="category-filter-bar" id="categoryFilterBar"></div>
+                <div class="stats-row">
+                    <div class="stat-card"><span class="stat-icon emoji">📚</span><div class="stat-value" id="statDecks">0</div><div class="stat-label">Decks</div></div>
+                    <div class="stat-card"><span class="stat-icon emoji">📝</span><div class="stat-value" id="statCards">0</div><div class="stat-label">Cards</div></div>
+                    <div class="stat-card"><span class="stat-icon emoji">🔄</span><div class="stat-value" id="statReviews">0</div><div class="stat-label">Reviews</div></div>
+                    <div class="stat-card"><span class="stat-icon emoji">🔥</span><div class="stat-value" id="statStreak">0</div><div class="stat-label">Streak</div></div>
+                </div>
+                <div class="deck-grid" id="deckList"></div>
+            </div>
+
+            <!-- STUDY -->
+            <div class="page" id="page-study"><div class="study-container" id="studyContent"><div class="empty-state"><span class="empty-icon emoji">📚</span><h3>Select a deck</h3></div></div></div>
+
+            <!-- TUTOR -->
+            <div class="page" id="page-tutor">
+                <div class="tutor-wrapper"><div class="chat-box">
+                    <div class="chat-header"><div class="chat-header-title">🤖 AI Tutor</div><button class="btn btn-ghost btn-sm" onclick="clearTutorChat()">🗑️ Clear</button></div>
+                    <div class="chat-messages" id="tutorMessages"><div class="msg ai"><div class="msg-label">🤖 AI Tutor</div>Halo! Tanya apapun! 🎓</div></div>
+                    <div class="chat-input-row"><input type="text" class="chat-input" id="tutorInput" placeholder="💬 Ketik..." onkeypress="if(event.key==='Enter')sendTutorMessage()"><button class="chat-send-btn" onclick="sendTutorMessage()">Send →</button></div>
+                </div></div>
+            </div>
+
+            <!-- GENERATOR -->
+            <div class="page" id="page-generator">
+                <div class="gen-container"><div class="page-header"><div><div class="page-title">🤖 AI Generator</div></div></div>
+                    <div class="gen-box"><label style="font-weight:600;">📝 Topic *</label><textarea id="genMaterial" class="input" placeholder="Contoh: Fotosintesis..." style="margin-top:0.3rem;"></textarea>
+                        <div class="gen-row" style="margin-top:1rem;"><select id="genType"><option value="campuran">🎲 Mixed</option><option value="pilihan ganda">🔤 MC</option><option value="truefalse">✅ T/F</option></select><input type="number" id="genCount" value="10" min="5" max="30" class="input" style="width:70px;flex:0;"></div>
+                        <button class="btn btn-primary btn-block" onclick="generateCards()" style="margin-top:1rem;">✨ Generate</button>
+                        <div id="genError" style="display:none;margin-top:1rem;padding:1rem;background:#fef5f5;border-radius:var(--radius);color:var(--danger);"></div>
+                        <div id="genResult" style="display:none;margin-top:1.5rem;"><div class="gen-cards" id="genList"></div><select id="genTargetDeck" class="input" style="margin-top:1rem;"><option value="">📚 Pilih deck...</option></select><button class="btn btn-primary btn-block" onclick="saveGeneratedCards()">💾 Save</button></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SETTINGS -->
+            <div class="page" id="page-settings">
+                <div class="settings-container">
+                    <div class="page-header"><div><div class="page-title">⚙️ Settings</div></div></div>
+                    <div class="settings-block"><h3>🔑 API Key</h3><p style="font-size:0.8rem;color:var(--text-tertiary);">Gratis di <a href="https://console.groq.com/keys" target="_blank" style="color:var(--accent);">console.groq.com/keys</a></p><input type="password" id="settingsApiKey" class="input" placeholder="gsk_..."><button class="btn btn-primary btn-block" onclick="saveSettingsApiKey()" style="margin-top:0.5rem;">💾 Save</button><p id="apiKeyStatus" style="font-size:0.75rem;margin-top:0.5rem;"></p></div>
+                    
+                    <!-- CUSTOM CATEGORIES -->
+                    <div class="settings-block">
+                        <h3>🏷️ Custom Categories</h3>
+                        <p style="font-size:0.8rem;color:var(--text-tertiary);margin-bottom:1rem;">Tambah kategori sendiri untuk deck lo!</p>
+                        <div class="custom-cat-row">
+                            <input type="text" id="newCatName" class="input" placeholder="Nama kategori (contoh: Matematika)" style="flex:1;">
+                            <div class="emoji-picker-container">
+                                <button class="emoji-picker-btn" id="emojiPickerBtn" onclick="toggleEmojiPicker()">📦</button>
+                                <div class="emoji-picker-dropdown" id="emojiPickerDropdown">
+                                    <div class="emoji-category-tabs">
+                                        <button class="emoji-cat-tab active" onclick="filterEmoji('education',this)">📚</button>
+                                        <button class="emoji-cat-tab" onclick="filterEmoji('nature',this)">🌿</button>
+                                        <button class="emoji-cat-tab" onclick="filterEmoji('objects',this)">💡</button>
+                                        <button class="emoji-cat-tab" onclick="filterEmoji('symbols',this)">🔣</button>
+                                    </div>
+                                    <div class="emoji-grid" id="emojiGrid"></div>
+                                </div>
+                            </div>
+                            <input type="hidden" id="newCatIcon" value="📦">
+                            <button class="btn btn-primary btn-sm" onclick="addCustomCategory()" style="white-space:nowrap;">➕ Add</button>
+                        </div>
+                        <div id="customCatList" style="margin-top:1rem;display:flex;gap:0.5rem;flex-wrap:wrap;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD DECK MODAL - FIXED -->
+    <div class="modal-overlay" id="addDeckModal">
+        <div class="modal-box">
+            <button class="modal-close" onclick="closeAddDeckModal()">✕</button>
+            <h2>📚 New Deck</h2>
+            <div style="margin-top:1rem;">
+                <label style="font-size:0.85rem;font-weight:600;display:block;">📝 Judul Deck *</label>
+                <input type="text" id="deckTitle" class="input" placeholder="Masukkan judul deck..." style="margin-top:0.3rem;">
+            </div>
+            <div style="margin-top:1rem;">
+                <label style="font-size:0.85rem;font-weight:600;display:block;">📄 Deskripsi (opsional)</label>
+                <textarea id="deckDesc" class="input" placeholder="Tambahkan deskripsi..." style="margin-top:0.3rem;min-height:80px;"></textarea>
+            </div>
+            <div style="margin-top:1rem;">
+                <label style="font-size:0.85rem;font-weight:600;display:block;">🏷️ Kategori</label>
+                <select id="deckCategory" class="input" style="margin-top:0.3rem;"></select>
+            </div>
+            <p style="font-size:0.7rem;color:var(--text-tertiary);margin-top:0.5rem;">💡 Tambah kategori custom di halaman Settings</p>
+            <button class="btn btn-primary btn-block" id="btnCreateDeck" style="margin-top:1rem;">✨ Create Deck</button>
+        </div>
+    </div>
+
+    <!-- ADD CARD MODAL -->
+    <div class="modal-overlay" id="addCardModal"><div class="modal-box" style="max-width:560px;"><button class="modal-close" onclick="closeModal('addCardModal')">✕</button><h2>✍️ Add Card</h2><textarea id="cardQuestion" class="input" placeholder="❓ Pertanyaan" style="margin-top:1rem;"></textarea><textarea id="cardAnswer" class="input" placeholder="✅ Jawaban" style="margin-top:0.5rem;"></textarea><input type="text" id="cardOptionB" class="input" placeholder="❌ Opsi B" style="margin-top:0.5rem;"><input type="text" id="cardOptionC" class="input" placeholder="❌ Opsi C" style="margin-top:0.5rem;"><input type="text" id="cardOptionD" class="input" placeholder="❌ Opsi D" style="margin-top:0.5rem;"><button class="btn btn-primary btn-block" id="btnSaveCard">💾 Save Card</button></div></div>
+
+    <script>
+        // ==================== EMOJI DATA ====================
+        const EMOJI_SETS = {
+            education: ['📚','📖','📝','📕','📗','📘','📙','📓','📒','🏫','🎓','🏆','🥇','📊','💯','✅','💡','🧠','🎯','⭐','🌟','🔥','💪','👨‍🏫','👩‍🏫','👨‍🎓','👩‍🎓','👨‍💻','👩‍💻','👨‍🔬','👩‍🔬','👨‍⚕️','👩‍⚕️'],
+            nature: ['🌿','🌱','🌲','🌳','🌴','🌺','🌻','🌹','🌸','🍀','🌍','🌎','🌏','🔥','💧','🌊','⭐','☀️','🌙','⚡','🌈','🐶','🐱','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸'],
+            objects: ['💡','📱','💻','🖥️','⌨️','📷','🎥','📺','⏰','⌚','🔋','💾','🎮','🔧','🔨','💊','💉','🔬','🔭','📦','📋','🔑','🔒','📏','📐','✂️','🛠️','⚒️','🧲','🧪'],
+            symbols: ['❤️','💚','💙','💜','💛','✨','🌟','⭐','🎉','🎀','🏅','🏆','✅','❌','⚠️','❓','❗','➕','➖','🔴','🟠','🟡','🟢','🔵','🟣','⚫','⚪','🔶','🔷','💠']
+        };
+        let currentEmojiFilter = 'education';
+
+        function toggleEmojiPicker(){
+            const d = document.getElementById('emojiPickerDropdown');
+            d.classList.toggle('show');
+            if(d.classList.contains('show')) renderEmojiGrid(currentEmojiFilter);
+        }
+        function filterEmoji(cat, btn){
+            currentEmojiFilter = cat;
+            document.querySelectorAll('.emoji-cat-tab').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderEmojiGrid(cat);
+        }
+        function renderEmojiGrid(cat){
+            document.getElementById('emojiGrid').innerHTML = (EMOJI_SETS[cat] || EMOJI_SETS.education).map(e => 
+                `<button class="emoji-item" onclick="selectEmoji('${e}')">${e}</button>`
+            ).join('');
+        }
+        function selectEmoji(e){
+            document.getElementById('emojiPickerBtn').textContent = e;
+            document.getElementById('newCatIcon').value = e;
+            document.getElementById('emojiPickerDropdown').classList.remove('show');
+        }
+
+        // ==================== CATEGORIES ====================
+        const DEFAULT_CATEGORIES = {
+            'UTBK': {icon:'📖', name:'UTBK'},
+            'CPNS': {icon:'🏛️', name:'CPNS'},
+            'Bahasa': {icon:'🗣️', name:'Language'},
+            'Kedokteran': {icon:'🏥', name:'Medical'},
+            'Sejarah': {icon:'📜', name:'History'},
+            'IT': {icon:'💻', name:'IT'},
+            'Lainnya': {icon:'📦', name:'Others'}
+        };
+        
+        function getAllCategories(){
+            const custom = JSON.parse(localStorage.getItem('fc_custom_categories') || '{}');
+            return { ...DEFAULT_CATEGORIES, ...custom };
+        }
+        function saveCustomCategories(cats){
+            const custom = {};
+            Object.entries(cats).forEach(([k,v]) => { if(!DEFAULT_CATEGORIES[k]) custom[k] = v; });
+            localStorage.setItem('fc_custom_categories', JSON.stringify(custom));
+        }
+        function getCatIcon(cat){ const cats = getAllCategories(); return cats[cat]?.icon || '📦'; }
+        function getCatName(cat){ const cats = getAllCategories(); return cats[cat]?.name || cat || 'Other'; }
+
+        // ==================== STATE ====================
+        let currentUser = null, currentDeckId = null, currentFilter = 'all';
+        let studyCards = [], studyIndex = 0, studyAnswered = false;
+        let generatedCards = [];
+        const API = 'https://api.groq.com/openai/v1/chat/completions';
+
+        // ==================== STORAGE ====================
+        function getUsers(){ try { return JSON.parse(localStorage.getItem('fc_users') || '[]'); } catch(e){ return []; } }
+        function saveUsers(u){ localStorage.setItem('fc_users', JSON.stringify(u)); }
+        function getDecks(){ try { return JSON.parse(localStorage.getItem('fc_decks') || '[]'); } catch(e){ return []; } }
+        function saveDecks(d){ localStorage.setItem('fc_decks', JSON.stringify(d)); }
+        function getCards(){ try { return JSON.parse(localStorage.getItem('fc_cards') || '[]'); } catch(e){ return []; } }
+        function saveCards(c){ localStorage.setItem('fc_cards', JSON.stringify(c)); }
+        function getProgress(){ try { return JSON.parse(localStorage.getItem('fc_progress') || '[]'); } catch(e){ return []; } }
+        function saveProgress(p){ localStorage.setItem('fc_progress', JSON.stringify(p)); }
+        function getApiKey(){ return localStorage.getItem('fc_api_key') || ''; }
+        function showToast(msg){ const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity 0.3s';setTimeout(()=>t.remove(),300);},2000); }
+
+        // ==================== SETUP LISTENERS ====================
+        function setupAllListeners(){
+            // CREATE DECK - FIXED with direct onclick
+            const btnCD = document.getElementById('btnCreateDeck');
+            if(btnCD) {
+                btnCD.onclick = function(e){ e.preventDefault(); createDeck(); };
+            }
+            
+            // SAVE CARD
+            const btnSC = document.getElementById('btnSaveCard');
+            if(btnSC) {
+                btnSC.onclick = function(e){ e.preventDefault(); saveCard(); };
+            }
+            
+            // NAVBAR
+            document.querySelectorAll('#navLinks .nav-link').forEach(link => {
+                link.onclick = function(e){ e.preventDefault(); const p = this.dataset.page; if(p) navigateTo(p); };
+            });
+            document.querySelector('.nav-brand').onclick = function(e){ e.preventDefault(); navigateTo('dashboard'); };
+            
+            // AUTH ENTER
+            document.getElementById('loginPass').onkeypress = e => { if(e.key==='Enter') doLogin(); };
+            document.getElementById('regPass').onkeypress = e => { if(e.key==='Enter') doRegister(); };
+            
+            // CLOSE MODALS
+            document.onclick = function(e) {
+                if(e.target.classList.contains('modal-overlay') && !e.target.closest('.modal-box')) {
+                    e.target.classList.remove('show');
+                }
+                // Close emoji picker
+                const picker = document.getElementById('emojiPickerDropdown');
+                const btn = document.getElementById('emojiPickerBtn');
+                if(picker && btn && !picker.contains(e.target) && !btn.contains(e.target)) {
+                    picker.classList.remove('show');
+                }
+            };
+        }
+
+        // ==================== AUTH ====================
+        function switchAuthTab(tab){ document.getElementById('tabLogin').classList.toggle('active',tab==='login');document.getElementById('tabRegister').classList.toggle('active',tab==='register');document.getElementById('loginFormDiv').style.display=tab==='login'?'flex':'none';document.getElementById('registerFormDiv').style.display=tab==='register'?'flex':'none'; }
+        function doLogin(){ const u=document.getElementById('loginUser').value.trim(),p=document.getElementById('loginPass').value.trim();if(!u||!p){alert('⚠️ Isi!');return;}const user=getUsers().find(x=>x.username===u&&x.password===p);if(user){currentUser=user;initApp();}else alert('❌ Salah!'); }
+        function doRegister(){ const u=document.getElementById('regUser').value.trim(),e=document.getElementById('regEmail').value.trim(),p=document.getElementById('regPass').value.trim();if(!u||!e||!p){alert('⚠️ Isi!');return;}if(p.length<6){alert('⚠️ Password min 6!');return;}if(getUsers().find(x=>x.username===u)){alert('⚠️ Taken!');return;}const nu={id:Date.now(),username:u,email:e,password:p};getUsers().push(nu);saveUsers(getUsers());currentUser=nu;initApp(); }
+        function doLogout(){ currentUser=null;localStorage.removeItem('fc_currentUser');document.getElementById('authScreen').style.display='flex';document.getElementById('mainApp').classList.remove('active'); }
+        function initApp(){ document.getElementById('authScreen').style.display='none';document.getElementById('mainApp').classList.add('active');document.getElementById('navUser').textContent=currentUser.username;localStorage.setItem('fc_currentUser',JSON.stringify(currentUser));setupAllListeners();navigateTo('dashboard');loadDashboard();updateApiStatus(); }
+        window.addEventListener('DOMContentLoaded',()=>{ const su=JSON.parse(localStorage.getItem('fc_currentUser')||'null');if(su){currentUser=su;initApp();}updateApiStatus(); });
+
+        // ==================== NAVIGATION ====================
+        function navigateTo(p){ document.querySelectorAll('#navLinks .nav-link').forEach(b=>b.classList.remove('active'));const al=document.querySelector(`#navLinks .nav-link[data-page="${p}"]`);if(al)al.classList.add('active');document.querySelectorAll('.page').forEach(pg=>pg.classList.remove('active'));const pe=document.getElementById('page-'+p);if(pe)pe.classList.add('active');if(p==='dashboard'){currentFilter='all';loadDashboard();}if(p==='settings')loadSettingsPage(); }
+
+        // ==================== DASHBOARD ====================
+        function filterByCategory(cat){ currentFilter=cat;document.querySelectorAll('.category-filter-btn').forEach(b=>b.classList.remove('active'));const btn=document.querySelector(`.category-filter-btn[data-cat="${cat}"]`);if(btn)btn.classList.add('active');loadDecks(); }
+        function loadDashboard(){ const userDecks=getDecks().filter(d=>d.userId===currentUser.id);const cards=getCards();const progress=getProgress().filter(p=>p.userId===currentUser.id);const cats=getAllCategories();const catCounts={};let total=0;userDecks.forEach(d=>{total++;const cat=d.category||'Lainnya';catCounts[cat]=(catCounts[cat]||0)+1;});document.getElementById('categoryFilterBar').innerHTML=`<button class="category-filter-btn ${currentFilter==='all'?'active':''}" data-cat="all" onclick="filterByCategory('all')">📋 All (${total})</button>`+Object.entries(catCounts).sort((a,b)=>b[1]-a[1]).map(([cat,count])=>{const info=cats[cat]||{icon:'📦',name:cat};return`<button class="category-filter-btn ${currentFilter===cat?'active':''}" data-cat="${cat}" onclick="filterByCategory('${cat}')">${info.icon} ${info.name} (${count})</button>`;}).join('');document.getElementById('statDecks').textContent=total;document.getElementById('statCards').textContent=cards.filter(c=>userDecks.find(d=>d.id===c.deckId)).length;document.getElementById('statReviews').textContent=progress.length;let streak=0;const today=new Date();for(let i=0;i<365;i++){const d=new Date(today);d.setDate(d.getDate()-i);if(progress.some(p=>p.lastReview?.split('T')[0]===d.toISOString().split('T')[0]))streak++;else break;}document.getElementById('statStreak').textContent=streak;loadDecks(); }
+        function loadDecks(){ let decks=getDecks().filter(d=>d.userId===currentUser.id);if(currentFilter!=='all')decks=decks.filter(d=>(d.category||'Lainnya')===currentFilter);const cards=getCards();const el=document.getElementById('deckList');if(!decks.length){el.innerHTML=`<div class="empty-state"><span class="empty-icon emoji">📚</span><h3>Belum ada deck</h3><button class="btn btn-primary" onclick="openAddDeckModal()">➕ Buat Deck</button></div>`;return;}el.innerHTML=decks.map(d=>{const dc=cards.filter(c=>c.deckId===d.id),due=getDueCards(d.id);const icon=getCatIcon(d.category),name=getCatName(d.category);return`<div class="deck-card" onclick="startStudy(${d.id})"><span class="deck-icon emoji">${icon}</span><h3 style="font-family:'Playfair Display',serif;">${d.title}</h3><div class="deck-meta"><span class="tag tag-light">📝 ${dc.length} kartu</span>${d.category?`<span class="tag tag-accent">${icon} ${name}</span>`:''}${due.length?`<span class="tag tag-danger">⏰ ${due.length} review</span>`:''}</div><div class="deck-actions" onclick="event.stopPropagation();"><button class="btn btn-primary btn-sm" onclick="startStudy(${d.id})">📚 Study</button><button class="btn btn-secondary btn-sm" onclick="openAddCardModal(${d.id})">➕ Card</button><button class="btn btn-danger btn-sm" onclick="deleteDeck(${d.id})">🗑️</button></div></div>`;}).join(''); }
+        function getDueCards(did){ return getCards().filter(c=>c.deckId===did&&getProgress().filter(p=>p.userId===currentUser.id&&p.deckId===did&&new Date(p.nextReview)<=new Date()).find(p=>p.cardId===c.id)); }
+
+        // ==================== ADD DECK - FIXED ====================
+        function openAddDeckModal(){
+            document.getElementById('deckTitle').value = '';
+            document.getElementById('deckDesc').value = '';
+            // Populate category dropdown
+            const cats = getAllCategories();
+            document.getElementById('deckCategory').innerHTML = '<option value="">🏷️ Pilih Kategori</option>' + 
+                Object.entries(cats).map(([k,v]) => `<option value="${k}">${v.icon} ${v.name}</option>`).join('');
+            document.getElementById('addDeckModal').classList.add('show');
+            setTimeout(() => document.getElementById('deckTitle').focus(), 100);
+        }
+        function closeAddDeckModal(){ document.getElementById('addDeckModal').classList.remove('show'); }
+        
+        function createDeck(){
+            console.log('📚 CREATE DECK CALLED');
+            const titleInput = document.getElementById('deckTitle');
+            const title = titleInput.value.trim();
+            
+            if(!title){
+                alert('⚠️ Judul deck harus diisi!');
+                titleInput.focus();
+                return;
+            }
+            
+            const newDeck = {
+                id: Date.now(),
+                userId: currentUser.id,
+                title: title,
+                description: document.getElementById('deckDesc').value.trim(),
+                category: document.getElementById('deckCategory').value,
+                createdAt: new Date().toISOString()
+            };
+            
+            console.log('New deck:', newDeck);
+            
+            const decks = getDecks();
+            decks.push(newDeck);
+            saveDecks(decks);
+            
+            console.log('Total decks after save:', getDecks().length);
+            
+            currentFilter = 'all';
+            closeAddDeckModal();
+            loadDashboard();
+            showToast('✅ Deck berhasil dibuat!');
+        }
+        
+        function deleteDeck(id){ if(!confirm('Hapus deck ini?'))return;saveDecks(getDecks().filter(d=>d.id!==id));saveCards(getCards().filter(c=>c.deckId!==id));loadDashboard();showToast('🗑️ Deck dihapus'); }
+
+        // ==================== ADD CARD ====================
+        function openAddCardModal(did){ currentDeckId=did;document.getElementById('addCardModal').classList.add('show');['cardQuestion','cardAnswer','cardOptionB','cardOptionC','cardOptionD'].forEach(id=>document.getElementById(id).value=''); }
+        function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+        function saveCard(){ const q=document.getElementById('cardQuestion').value.trim(),a=document.getElementById('cardAnswer').value.trim();if(!q||!a){alert('⚠️ Isi!');return;}getCards().push({id:Date.now(),deckId:currentDeckId,question:q,answer:a,options:[document.getElementById('cardOptionB').value.trim(),document.getElementById('cardOptionC').value.trim(),document.getElementById('cardOptionD').value.trim()].filter(o=>o),createdAt:new Date().toISOString()});saveCards(getCards());closeModal('addCardModal');loadDashboard();showToast('✅ Tersimpan!'); }
+
+        // ==================== STUDY ====================
+        function startStudy(did){ currentDeckId=did;const all=getCards().filter(c=>c.deckId===did);if(!all.length)return alert('⚠️ Kosong!');studyCards=[...getDueCards(did),...all.filter(c=>!getDueCards(did).find(d=>d.id===c.id))];studyIndex=0;studyAnswered=false;navigateTo('study');renderStudy(); }
+        function renderStudy(){ studyAnswered=false;if(studyIndex>=studyCards.length){document.getElementById('studyContent').innerHTML=`<div class="study-complete"><span class="icon emoji">🎉</span><h2>Selesai!</h2><button class="btn btn-primary" onclick="navigateTo('dashboard')">🏠 Dashboard</button></div>`;return;}const card=studyCards[studyIndex];const isTF=(card.answer.toLowerCase().trim()==='true'||card.answer.toLowerCase().trim()==='false');const ho=card.options&&card.options.length>=3;let ah='';if(isTF)ah=`<div class="tf-grid"><button class="tf-btn" id="tfTrue" onclick="htf('true')">✅ TRUE</button><button class="tf-btn" id="tfFalse" onclick="htf('false')">❌ FALSE</button></div>`;else if(ho){const ao=[card.answer,...card.options].sort(()=>Math.random()-0.5);const ci=ao.indexOf(card.answer);ah=`<div class="options-grid">${ao.map((o,i)=>`<button class="option-btn" id="opt${i}" data-correct="${i===ci}" onclick="hmc(${i})"><span class="option-letter">${String.fromCharCode(65+i)}</span>${o}</button>`).join('')}</div>`;}document.getElementById('studyContent').innerHTML=`<div class="study-progress"><span>📝 ${studyIndex+1}/${studyCards.length}</span><div class="progress-track"><div class="progress-fill" style="width:${(studyIndex/studyCards.length)*100}%;"></div></div></div><div class="flashcard" id="fcEl"><p class="card-label">❓ Question</p><div class="card-question">${card.question}</div><div class="card-answer" id="cardA">✅ ${card.answer}</div>${!ho&&!isTF?'<p class="card-hint">👆 Tap</p>':''}</div>${ah}<div class="action-row"><button class="btn btn-warning btn-sm" onclick="dontKnow()" style="background:var(--warning);color:#333;border:none;padding:0.5rem 1rem;border-radius:var(--radius-sm);cursor:pointer;font-weight:500;">🤔 Gak Tau</button><button class="btn btn-primary btn-sm" onclick="nc()">➡️ Next</button></div><div class="dont-know-panel" id="dkPanel"><h4>🧠 AI Menjelaskan</h4><div id="aiExpContainer"></div></div>`;if(!ho&&!isTF)document.getElementById('fcEl').addEventListener('click',()=>{document.getElementById('cardA').classList.add('show');}); }
+        function htf(c){ if(studyAnswered)return;studyAnswered=true;const cor=studyCards[studyIndex].answer.toLowerCase().trim()===c;const t=document.getElementById('tfTrue'),f=document.getElementById('tfFalse');t.classList.add('disabled');f.classList.add('disabled');if(studyCards[studyIndex].answer.toLowerCase().trim()==='true')t.classList.add('correct');else f.classList.add('correct');if(!cor){if(c==='true')t.classList.add('wrong');else f.classList.add('wrong');}document.getElementById('cardA').classList.add('show');sp2(cor?5:0); }
+        function hmc(i){ if(studyAnswered)return;studyAnswered=true;const el=document.getElementById('opt'+i),cor=el.dataset.correct==='true';document.querySelectorAll('.option-btn').forEach(b=>{b.classList.add('disabled');if(b.dataset.correct==='true')b.classList.add('correct');});if(!cor)el.classList.add('wrong');document.getElementById('cardA').classList.add('show');sp2(cor?5:0); }
+        function sp2(q){ const card=studyCards[studyIndex],prog=getProgress(),ex=prog.find(p=>p.userId===currentUser.id&&p.cardId===card.id);let ef,iv,rp;if(!ex){ef=2.5;rp=1;iv=q>=3?1:0;}else{ef=ex.easeFactor;rp=ex.repetitions;if(q<3){rp=1;iv=0;}else{rp++;iv=rp===1?1:rp===2?6:Math.round(ex.interval*ef);}ef=Math.max(1.3,ef+(0.1-(5-q)*(0.08+(5-q)*0.02)));}const nr=new Date();nr.setDate(nr.getDate()+iv);saveProgress(prog.filter(p=>!(p.userId===currentUser.id&&p.cardId===card.id)).concat({userId:currentUser.id,cardId:card.id,deckId:card.deckId,easeFactor:ef,interval:iv,repetitions:rp,nextReview:nr.toISOString(),lastReview:new Date().toISOString()})); }
+        function nc(){ studyIndex++;renderStudy(); }
+        async function dontKnow(){ document.getElementById('dkPanel').classList.add('show');document.getElementById('aiExpContainer').innerHTML='<p style="color:var(--text-tertiary);">🧠 AI sedang mencari penjelasan...</p>';if(!getApiKey()){document.getElementById('aiExpContainer').innerHTML='<p style="color:var(--danger);">⚠️ API Key belum disetting!</p>';return;}try{const card=studyCards[studyIndex];const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${getApiKey()}`},body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'user',content:`Jelaskan: "${card.question}". Jawaban: "${card.answer}".`}],temperature:0.7,max_tokens:800})});const d=await r.json();document.getElementById('aiExpContainer').innerHTML=d.choices[0].message.content.replace(/\n/g,'<br>');}catch(e){document.getElementById('aiExpContainer').innerHTML='❌ Error: '+e.message;} }
+
+        // ==================== TUTOR ====================
+        async function sendTutorMessage(){ const inp=document.getElementById('tutorInput');const msg=inp.value.trim();if(!msg||!getApiKey())return;atm('user',msg);inp.value='';try{const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${getApiKey()}`},body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'user',content:msg}],temperature:0.7,max_tokens:1200})});const d=await r.json();atm('ai',d.choices[0].message.content);}catch(e){atm('ai','❌ Error');} }
+        function atm(type,text){ const d=document.createElement('div');d.className=`msg ${type}`;d.innerHTML=type==='user'?`<div class="msg-label">👤 Lo</div>${text.replace(/\n/g,'<br>')}`:`<div class="msg-label">🤖 AI</div>${text.replace(/\n/g,'<br>')}`;document.getElementById('tutorMessages').appendChild(d);document.getElementById('tutorMessages').scrollTop=document.getElementById('tutorMessages').scrollHeight; }
+        function clearTutorChat(){ document.getElementById('tutorMessages').innerHTML='<div class="msg ai"><div class="msg-label">🤖 AI</div>Chat dibersihkan! 🎓</div>'; }
+
+        // ==================== GENERATOR ====================
+        async function generateCards(){ const m=document.getElementById('genMaterial').value.trim();if(!m||!getApiKey()){document.getElementById('genError').style.display='block';document.getElementById('genError').textContent='⚠️ Isi materi & API key!';return;}document.getElementById('genError').style.display='none';document.getElementById('genResult').style.display='none';try{const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${getApiKey()}`},body:JSON.stringify({model:'llama-3.3-70b-versatile',messages:[{role:'system',content:'Output ONLY valid JSON array. No markdown.'},{role:'user',content:`Buat ${document.getElementById('genCount').value} flashcard. Topik: ${m}. JSON: [{"question":"...","answer":"...","options":["w1","w2","w3"]}]`}],temperature:0.7,max_tokens:4000})});const d=await r.json();let content=d.choices[0].message.content.trim();content=content.replace(/```json\s*/gi,'').replace(/```\s*/g,'');const fb=content.indexOf('['),lb=content.lastIndexOf(']');if(fb===-1||lb===-1)throw new Error('No JSON');content=content.substring(fb,lb+1);generatedCards=JSON.parse(content);document.getElementById('genResult').style.display='block';document.getElementById('genList').innerHTML=generatedCards.map((c,i)=>`<div class="gen-card selected" id="gCard${i}"><input type="checkbox" id="gCheck${i}" checked><strong>Q:</strong> ${c.question}<br><strong>A:</strong> ${c.answer}</div>`).join('');document.getElementById('genTargetDeck').innerHTML='<option value="">📚 Pilih deck...</option>'+getDecks().filter(d=>d.userId===currentUser.id).map(d=>`<option value="${d.id}">${getCatIcon(d.category)} ${d.title}</option>`).join('');}catch(e){document.getElementById('genError').style.display='block';document.getElementById('genError').textContent='❌ '+e.message;} }
+        function saveGeneratedCards(){ const tid=parseInt(document.getElementById('genTargetDeck').value);if(!tid)return alert('⚠️ Pilih deck!');const sel=generatedCards.filter((_,i)=>document.getElementById('gCheck'+i).checked);if(!sel.length)return alert('⚠️ Pilih minimal 1!');const cards=getCards();sel.forEach((c,i)=>cards.push({id:Date.now()+i,deckId:tid,question:c.question,answer:c.answer,options:c.options||[],createdAt:new Date().toISOString()}));saveCards(cards);document.getElementById('genResult').style.display='none';loadDashboard();showToast(`✅ ${sel.length} disimpan!`); }
+
+        // ==================== SETTINGS ====================
+        function loadSettingsPage(){ document.getElementById('settingsApiKey').value=getApiKey();updateApiStatus();loadCustomCategoryList(); }
+        function saveSettingsApiKey(){ const k=document.getElementById('settingsApiKey').value.trim();if(k){localStorage.setItem('fc_api_key',k);updateApiStatus();showToast('✅ Disimpan!');} }
+        function updateApiStatus(){ const el=document.getElementById('apiKeyStatus');if(el){const k=getApiKey();el.textContent=k?'✅ Ready':'⚠️ No key';el.style.color=k?'var(--success)':'var(--danger)';} }
+        
+        function addCustomCategory(){
+            const name = document.getElementById('newCatName').value.trim();
+            const icon = document.getElementById('newCatIcon').value.trim() || '📦';
+            if(!name){ alert('⚠️ Nama kategori harus diisi!'); return; }
+            const key = name.replace(/\s+/g, '_').toUpperCase();
+            const cats = getAllCategories();
+            if(cats[key] && DEFAULT_CATEGORIES[key]){ alert('⚠️ Tidak bisa overwrite kategori default!'); return; }
+            cats[key] = { icon, name };
+            saveCustomCategories(cats);
+            document.getElementById('newCatName').value = '';
+            document.getElementById('newCatIcon').value = '📦';
+            document.getElementById('emojiPickerBtn').textContent = '📦';
+            loadCustomCategoryList();
+            showToast('✅ Kategori ditambahkan!');
+        }
+        
+        function deleteCustomCategory(key){
+            if(DEFAULT_CATEGORIES[key]) return;
+            const cats = getAllCategories();
+            delete cats[key];
+            saveCustomCategories(cats);
+            loadCustomCategoryList();
+            showToast('🗑️ Kategori dihapus');
+        }
+        
+        function loadCustomCategoryList(){
+            const cats = getAllCategories();
+            const custom = Object.entries(cats).filter(([k]) => !DEFAULT_CATEGORIES[k]);
+            const el = document.getElementById('customCatList');
+            if(!custom.length){
+                el.innerHTML = '<p style="font-size:0.8rem;color:var(--text-tertiary);">Belum ada kategori custom</p>';
+                return;
+            }
+            el.innerHTML = custom.map(([k,v]) => 
+                `<span class="tag tag-accent" style="cursor:default;">${v.icon} ${v.name} <button onclick="deleteCustomCategory('${k}')" style="background:none;border:none;cursor:pointer;color:var(--danger);margin-left:0.3rem;">✕</button></span>`
+            ).join('');
+        }
+    </script>
+</body>
+</html>
